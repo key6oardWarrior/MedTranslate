@@ -41,7 +41,8 @@ while True:
 			try:
 				transcribed_text: str = image_to_string(fromarray(cvtColor(image, COLOR_BGR2RGB)))
 				destroyAllWindows()
-				simple_summary: str = summerizer.simple_summary(transcribed_text)
+				summerizer.text = transcribed_text
+				simple_summary: str = summerizer.simple_summary()
 
 				# Display the transcribed text in the Multiline widget
 				window["-OUTPUT-"].update(simple_summary)

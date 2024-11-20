@@ -1,78 +1,20 @@
-from os import getcwd
-from os.path import join
-
-from cv2 import VideoCapture, waitKey, imshow, destroyAllWindows, cvtColor, COLOR_BGR2RGB
+from cv2 import destroyAllWindows, cvtColor, COLOR_BGR2RGB
 from cv2.typing import MatLike
-from PySimpleGUI import popup, popup_error, Multiline, Text, Button, Window, WIN_CLOSED
 from PIL.Image import fromarray
-from PIL import Image
 from pytesseract import image_to_string
 from pytesseract import pytesseract
-from speech_recognition import Recognizer, Microphone, UnknownValueError, RequestError
+from transformers import pipeline
+from transformers import PegasusForConditionalGeneration, PegasusTokenizer
+from PySimpleGUI import popup_error, Multiline, Text, Button, Window, WIN_CLOSED
 
-pytesseract.tesseract_cmd = join(getcwd(), join("Tesseract-OCR", "tesseract.exe"))
+from const import MODEL_NAME, TESSERACT_PATH
+from camera import capture_image
+from audio import transcribe_audio
 
-def capture_image() -> tuple[bool, MatLike] | None:
-	'''
-	# Description:
-	Capture an image from the camera
-
-	# Returns:
-	MatLike object that represents the image or None if error
-	'''
-	cap = VideoCapture(0)  # Use the default camera (index 0)
-
-	if cap.isOpened() == False:
-		return None
-
-	popup("Press 'Spacebar' to capture the image, or 'Esc' to cancel.", title="Instructions")
-	get_next_frame = True
-	frame = None
-	is_success = False
-
-	while get_next_frame:
-		result, frame = cap.read()
-		frame: MatLike
-
-		if result:
-			# Display the video feed
-			imshow("Camera Feed - Press Space to Capture", frame)
-
-			key: int = waitKey(1)
-			if key == 32:  # Spacebar key
-				get_next_frame = False
-				is_success = True
-			elif key == 27: # escape key
-				cap.release()
-				destroyAllWindows()
-				get_next_frame = False
-		else:
-			get_next_frame = False
-
-	return (is_success, frame)
-
-def transcribe_audio() -> str | None:
-	'''
-	# Description:
-	Transcribe audio from the microphone
-
-	# Returns:
-	The transcribed text or None if error
-	'''
-	recognizer = Recognizer()
-	with Microphone() as source:
-		popup("Listening... Please speak clearly.", title="Microphone Active")
-		try:
-			# Capture audio from the microphone
-			print("Mic in use...")
-			audio = recognizer.listen(source)
-			# Transcribe audio to text
-			transcribed_text = recognizer.recognize_google(audio)
-			return transcribed_text
-		except UnknownValueError:
-			popup_error("Could not understand the audio.")
-		except RequestError as e:
-			popup_error(f"Error with the speech recognition service: {e}")
+def init() -> None:
+	pytesseract.tesseract_cmd = TESSERACT_PATH
+	# Load pretrained tokenizer
+	return PegasusTokenizer.from_pretrained(MODEL_NAME)
 
 # Define the GUI layout
 layout = [
@@ -84,6 +26,7 @@ layout = [
 	[Button("Exit", size=(10, 1))]
 ]
 
+pretrained_model = init()
 # Create the GUI window
 window = Window("Medication Assistant with OCR and Audio Transcription", layout)
 
@@ -98,6 +41,7 @@ while True:
 		# Capture an image from the camera
 		is_success, image = capture_image()
 		image: MatLike
+
 		if is_success:
 			try:
 				transcribed_text: str = image_to_string(fromarray(cvtColor(image, COLOR_BGR2RGB)))
@@ -114,7 +58,8 @@ while True:
 
 	elif event == "Transcribe Audio":
 		# Transcribe audio from the microphone
-		audio_text = transcribe_audio()
+		audio_text: str = transcribe_audio()
+
 		if audio_text:
 			# Display the transcribed text in the Multiline widget
 			window["-OUTPUT-"].update(audio_text)

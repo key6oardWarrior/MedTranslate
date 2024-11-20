@@ -1,4 +1,5 @@
 from os import getcwd
+from os.path import join
 
 from cv2 import VideoCapture, waitKey, imshow, destroyAllWindows, cvtColor, COLOR_BGR2RGB
 from cv2.typing import MatLike
@@ -6,14 +7,12 @@ from PySimpleGUI import popup, popup_error, Multiline, Text, Button, Window, WIN
 from PIL.Image import fromarray
 from PIL import Image
 from pytesseract import image_to_string
-from pytesseract.pytesseract import tesseract_cmd
+from pytesseract import pytesseract
 from speech_recognition import Recognizer, Microphone, UnknownValueError, RequestError
 
-# Configure Tesseract path (update this based on your system)
-# Example for Windows: tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-tesseract_cmd = getcwd()
+pytesseract.tesseract_cmd = join(getcwd(), join("Tesseract-OCR", "tesseract.exe"))
 
-def capture_image() -> MatLike | None:
+def capture_image() -> tuple[bool, MatLike] | None:
 	'''
 	# Description:
 	Capture an image from the camera
@@ -29,26 +28,28 @@ def capture_image() -> MatLike | None:
 	popup("Press 'Spacebar' to capture the image, or 'Esc' to cancel.", title="Instructions")
 	get_next_frame = True
 	frame = None
+	is_success = False
 
 	while get_next_frame:
 		result, frame = cap.read()
 		frame: MatLike
 
-		if result == None:
+		if result:
+			# Display the video feed
+			imshow("Camera Feed - Press Space to Capture", frame)
+
+			key: int = waitKey(1)
+			if key == 32:  # Spacebar key
+				get_next_frame = False
+				is_success = True
+			elif key == 27: # escape key
+				cap.release()
+				destroyAllWindows()
+				get_next_frame = False
+		else:
 			get_next_frame = False
 
-		# Display the video feed
-		imshow("Camera Feed - Press Space to Capture", frame)
-
-		key: int = waitKey(1)
-		if key == 32:  # Spacebar key
-			get_next_frame = False
-		elif key == 27: # escape key
-			cap.release()
-			destroyAllWindows()
-			get_next_frame = False
-
-	return frame
+	return (is_success, frame)
 
 def transcribe_audio() -> str | None:
 	'''
@@ -95,22 +96,21 @@ while True:
 
 	if event == "Capture Image":
 		# Capture an image from the camera
-		image: MatLike = capture_image()
-		if image:
-			# Convert the OpenCV image (BGR) to PIL format (RGB)
-			image_rgb: MatLike = cvtColor(image, COLOR_BGR2RGB)
-			pil_image: Image = fromarray(image_rgb)
-
+		is_success, image = capture_image()
+		image: MatLike
+		if is_success:
 			try:
-				# Perform OCR on the image
-				transcribed_text: str = image_to_string(pil_image)
+				transcribed_text: str = image_to_string(fromarray(cvtColor(image, COLOR_BGR2RGB)))
+				destroyAllWindows()
 
 				# Display the transcribed text in the Multiline widget
 				window["-OUTPUT-"].update(transcribed_text)
 			except Exception as e:
 				popup_error("Error processing the image:", str(e))
+				destroyAllWindows()
 		else:
 			popup_error("Error cannot capture the image")
+			destroyAllWindows()
 
 	elif event == "Transcribe Audio":
 		# Transcribe audio from the microphone

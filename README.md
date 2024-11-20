@@ -1,7 +1,7 @@
 <h1>MedTranslate</h1> 
 
-Medication Jargon Translation with OCR and Audio Transcription
-This application provides an intuitive interface for extracting medication-related information using Optical Character Recognition (OCR) and audio transcription. This tool relieves the stress of understanding drugs and decoding complex medical jargon. It simplifies instructions, helping people from all walks of life. By focusing on accessibility, the application invests in users of all education levels, ensuring healthcare information is understandable for everyone.
+Medication Jargon Translator with OCR and Audio Transcription
+This application provides an intuitive interface for extracting medication-related information using Optical Character Recognition (OCR) and audio transcription. This tool relieves the stress of understanding drugs and decoding complex medical jargon. It simplifies instructions, helping people from all walks of life. By focusing on accessibility, the application invests in users of all education levels, ensuring healthcare information is understandable for everyone. Also Includes text to speech and speech to text with a file lookup in ui.
 
 
 <h3>Features</h3>
